@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Gestão — Digital+</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0f0f11;
+  --bg2: #17171a;
+  --bg3: #1e1e23;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0eff4;
+  --text2: #9b99a8;
+  --text3: #5e5c6e;
+  --verde: #22c55e;
+  --verde-bg: rgba(34,197,94,0.1);
+  --verde-border: rgba(34,197,94,0.25);
+  --amarelo: #f59e0b;
+  --amarelo-bg: rgba(245,158,11,0.1);
+  --amarelo-border: rgba(245,158,11,0.25);
+  --vermelho: #ef4444;
+  --vermelho-bg: rgba(239,68,68,0.1);
+  --vermelho-border: rgba(239,68,68,0.25);
+  --accent: #7c6dfa;
+  --accent2: #a78bfa;
+  --teal: #2dd4bf;
+  --teal-bg: rgba(45,212,191,0.1);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* UPLOAD SCREEN */
+#upload-screen {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem; background: var(--bg);
+  background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124,109,250,0.15), transparent);
+}
+.logo { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3); margin-bottom: 3rem; font-family: 'DM Mono', monospace; }
+.upload-title { font-size: 2rem; font-weight: 300; text-align: center; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.upload-title span { color: var(--accent2); font-weight: 500; }
+.upload-sub { color: var(--text2); text-align: center; margin-bottom: 3rem; font-size: 0.95rem; }
+.drop-zone {
+  width: 100%; max-width: 480px; border: 1.5px dashed var(--border2); border-radius: var(--radius);
+  padding: 3rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s;
+  background: var(--bg2);
+}
+.drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(124,109,250,0.05); }
+.drop-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.5; }
+.drop-text { color: var(--text2); font-size: 0.9rem; line-height: 1.7; }
+.drop-text strong { color: var(--text); }
+#file-input { display: none; }
+.btn-upload {
+  margin-top: 1.5rem; padding: 0.65rem 1.75rem; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-upload:hover { opacity: 0.85; }
+.upload-hint { margin-top: 1rem; font-size: 0.8rem; color: var(--text3); }
+
+/* PAINEL */
+#painel { display: none; min-height: 100vh; }
+.topbar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
+.topbar-logo { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace; }
+.topbar-title { font-weight: 500; font-size: 0.95rem; color: var(--text); }
+.topbar-file { font-size: 0.75rem; color: var(--text3); font-family: 'DM Mono', monospace; }
+.btn-novo { padding: 0.4rem 1rem; background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+.btn-novo:hover { border-color: var(--accent); color: var(--accent2); }
+
+.main { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; }
+.tab-btn { padding: 0.6rem 1.1rem; font-size: 0.85rem; cursor: pointer; border: none; background: none; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all 0.15s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); font-weight: 500; }
+.tab-sec { display: none; }
+.tab-sec.active { display: block; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+.kpi-label { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.kpi-val { font-size: 1.75rem; font-weight: 300; letter-spacing: -0.02em; }
+.kpi-sub { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+.kpi.verde { border-color: var(--verde-border); background: var(--verde-bg); }
+.kpi.verde .kpi-val { color: var(--verde); }
+.kpi.amarelo { border-color: var(--amarelo-border); background: var(--amarelo-bg); }
+.kpi.amarelo .kpi-val { color: var(--amarelo); }
+.kpi.vermelho { border-color: var(--vermelho-border); background: var(--vermelho-bg); }
+.kpi.vermelho .kpi-val { color: var(--vermelho); }
+.kpi.accent { border-color: rgba(124,109,250,0.3); }
+.kpi.accent .kpi-val { color: var(--accent2); }
+
+/* ALERT */
+.alert { background: var(--vermelho-bg); border: 1px solid var(--vermelho-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 0.82rem; color: #fca5a5; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+.alert-info { background: var(--amarelo-bg); border-color: var(--amarelo-border); color: #fde68a; }
+
+/* FILTERS */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; align-items: flex-end; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg label { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.fg input, .fg select {
+  font-size: 0.82rem; padding: 0.4rem 0.65rem; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; min-width: 120px;
+  outline: none; transition: border-color 0.15s;
+}
+.fg input:focus, .fg select:focus { border-color: var(--accent); }
+.fg select option { background: var(--bg2); }
+.btn-clear { padding: 0.4rem 0.75rem; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+.btn-clear:hover { border-color: var(--border2); color: var(--text); }
+
+/* TABLE */
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+th { background: var(--bg3); padding: 0.6rem 0.85rem; text-align: left; font-weight: 500; font-size: 0.72rem; color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; text-transform: uppercase; letter-spacing: 0.05em; }
+th:hover { color: var(--text2); }
+td { padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 500; white-space: nowrap; }
+.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.b-verde { background: var(--verde-bg); color: var(--verde); border: 1px solid var(--verde-border); }
+.dot-verde { background: var(--verde); }
+.b-amarelo { background: var(--amarelo-bg); color: var(--amarelo); border: 1px solid var(--amarelo-border); }
+.dot-amarelo { background: var(--amarelo); }
+.b-vermelho { background: var(--vermelho-bg); color: #fca5a5; border: 1px solid var(--vermelho-border); }
+.dot-vermelho { background: var(--vermelho); }
+.b-cliente { background: var(--teal-bg); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+.b-admin { background: rgba(255,255,255,0.05); color: var(--text2); border: 1px solid var(--border); }
+.b-nova { background: rgba(124,109,250,0.12); color: var(--accent2); border: 1px solid rgba(124,109,250,0.2); }
+.b-resolvendo { background: rgba(245,158,11,0.1); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+.b-aguardando { background: rgba(34,197,94,0.1); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+.b-prio { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 10px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.card-nome { font-weight: 500; font-size: 1rem; }
+.card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* GRID 2 col */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+@media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* SECTION LABEL */
+.sec-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 0.75rem; font-family: 'DM Mono', monospace; }
+
+/* PAGINATION */
+.pag { display: flex; gap: 6px; align-items: center; margin-top: 12px; justify-content: flex-end; font-size: 0.78rem; color: var(--text3); }
+.pag button { padding: 3px 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; }
+.pag button:hover { border-color: var(--border2); color: var(--text); }
+
+/* PROGRESS BAR */
+.pbar-wrap { margin-bottom: 10px; }
+.pbar-top { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
+.pbar-track { height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.pbar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.pbar-fill.verde { background: var(--verde); }
+.pbar-fill.amarelo { background: var(--amarelo); }
+.pbar-fill.vermelho { background: var(--vermelho); }
+
+/* LOADING */
+#loading { display: none; position: fixed; inset: 0; background: rgba(15,15,17,0.9); z-index: 999; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
+.spinner { width: 36px; height: 36px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.dias-ok { color: var(--text2); }
+.dias-warn { color: var(--amarelo); font-weight: 500; }
+.dias-crit { color: var(--vermelho); font-weight: 500; }
+
+.ellipsis { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span style="color:var(--text2);font-size:0.85rem">Processando planilha...</span></div>
+
+<!-- UPLOAD -->
+<div id="upload-screen">
+  <div class="logo">Digital+ Contabilidade</div>
+  <h1 class="upload-title">Painel de <span>Gestão</span></h1>
+  <p class="upload-sub">Faça upload da planilha de solicitações para visualizar os indicadores</p>
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="drop-icon">📊</div>
+    <div class="drop-text">
+      <strong>Clique ou arraste o arquivo aqui</strong><br>
+      Exporte do Acessorias e faça o upload<br>
+      <span style="font-size:0.78rem;color:var(--text3)">Formato: .xlsx</span>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls" onchange="carregarArquivo(this.files[0])">
+  </div>
+  <p class="upload-hint">Os dados ficam apenas no seu navegador — nada é enviado para servidores externos</p>
+</div>
+
+<!-- PAINEL -->
+<div id="painel">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Digital+</span>
+      <span class="topbar-title">Painel de Gestão</span>
+      <span class="topbar-file" id="nome-arquivo"></span>
+    </div>
+    <button class="btn-novo" onclick="voltarUpload()">↑ Nova planilha</button>
+  </div>
+  <div class="main">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="sw('visao',this)">Visão Geral</button>
+      <button class="tab-btn" onclick="sw('lista',this)">Lista Completa</button>
+      <button class="tab-btn" onclick="sw('equipe',this)">Por Pessoa</button>
+      <button class="tab-btn" onclick="sw('setor',this)">Por Setor</button>
+      <button class="tab-btn" onclick="sw('admin',this)">Prioridades Admin</button>
+    </div>
+
+    <!-- VISÃO GERAL -->
+    <div id="tab-visao" class="tab-sec active">
+      <div id="alerta-visao"></div>
+      <div class="kpi-grid" id="kpis"></div>
+      <div class="grid2">
+        <div>
+          <div class="sec-label">Por tipo</div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tipo</th><th>Verde</th><th>Amarelo</th><th>Vermelho</th><th>Total</th></tr></thead>
+            <tbody id="tbl-tipo"></tbody>
+          </table></div>
+        </div>
+        <div>
+          <div class="sec-label">Por status</div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Status</th><th>Qtd</th><th>Média dias</th><th>Máx</th></tr></thead>
+            <tbody id="tbl-status"></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="sec-label">Semáforo por setor</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Setor</th><th>Verde ✓</th><th>Amarelo !</th><th>Vermelho ✗</th><th>Total</th><th>% no prazo</th></tr></thead>
+        <tbody id="tbl-setor-v"></tbody>
+      </table></div>
+    </div>
+
+    <!-- LISTA -->
+    <div id="tab-lista" class="tab-sec">
+      <div class="filters">
+        <div class="fg"><label>Buscar</label><input id="f-busca" placeholder="Assunto ou empresa..." oninput="filtrar()"></div>
+        <div class="fg"><label>Semáforo</label><select id="f-sem" onchange="filtrar()"><option value="">Todos</option><option>Verde</option><option>Amarelo</option><option>Vermelho</option></select></div>
+        <div class="fg"><label>Tipo</label><select id="f-tipo" onchange="filtrar()"><option value="">Todos</option><option>Cliente</option><option>Administrativo</option></select></div>
+        <div class="fg"><label>Status</label><select id="f-status" onchange="filtrar()"><option value="">Todos</option><option>Nova</option><option>Resolvendo</option><option>Cliente</option></select></div>
+        <div class="fg"><label>Setor</label><select id="f-dpto" onchange="filtrar()"><option value="">Todos</option></select></div>
+        <div class="fg"><label>Responsável</label><select id="f-resp" onchange="filtrar()"><option value="">Todos</option></select></div>
+        <div class="fg"><label>&nbsp;</label><button class="btn-clear" onclick="limpar()">Limpar</button></div>
+      </div>
+      <div id="lista-info" style="font-size:0.75rem;color:var(--text3);margin-bottom:8px"></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th onclick="sortBy('sem')">Prazo</th>
+          <th onclick="sortBy('tipo')">Tipo</th>
+          <th onclick="sortBy('id')">ID</th>
+          <th onclick="sortBy('assunto')">Assunto</th>
+          <th onclick="sortBy('empresa')">Empresa</th>
+          <th onclick="sortBy('status')">Status</th>
+          <th onclick="sortBy('departamento')">Setor</th>
+          <th onclick="sortBy('responsavel')">Responsável</th>
+          <th onclick="sortBy('dias')">Dias ↕</th>
+          <th onclick="sortBy('abertura')">Abertura</th>
+        </tr></thead>
+        <tbody id="lista-body"></tbody>
+      </table></div>
+      <div class="pag">
+        <button onclick="prevP()">‹</button>
+        <span id="pag-info"></span>
+        <button onclick="nextP()">›</button>
+      </div>
+    </div>
+
+    <!-- EQUIPE -->
+    <div id="tab-equipe" class="tab-sec">
+      <div class="filters">
+        <div class="fg"><label>Pessoa</label><select id="f-pessoa" onchange="renderEquipe()"><option value="">Todas</option></select></div>
+        <div class="fg"><label>Tipo</label><select id="f-tipo-eq" onchange="renderEquipe()"><option value="">Todos</option><option>Cliente</option><option>Administrativo</option></select></div>
+      </div>
+      <div id="equipe-cards"></div>
+    </div>
+
+    <!-- SETOR -->
+    <div id="tab-setor" class="tab-sec">
+      <div class="filters">
+        <div class="fg"><label>Setor</label><select id="f-setor-sel" onchange="renderSetor()"><option value="">Todos</option></select></div>
+      </div>
+      <div id="setor-cards"></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="tab-admin" class="tab-sec">
+      <div class="alert alert-info" style="margin-bottom:1rem">★ Certificados digitais, cadastros e procurações são prioridade máxima dos setores Administrativo e Financeiro</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Prazo</th><th>ID</th><th>Assunto</th><th>Empresa</th><th>Setor</th><th>Responsável</th><th>Dias</th><th>Status</th></tr></thead>
+        <tbody id="admin-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let dados=[], filtrados=[], sortCol='dias', sortAsc=false, pag=1;
+const POR_PAG=30;
+let dptos=[], resps=[];
+
+// DRAG DROP
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0]) carregarArquivo(e.dataTransfer.files[0]);});
+
+function carregarArquivo(file){
+  if(!file) return;
+  document.getElementById('loading').style.display='flex';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1});
+      // Encontrar linha de cabeçalho
+      let hIdx=raw.findIndex(r=>r.includes('ID da Solicitação')||r.includes('Assunto'));
+      if(hIdx<0) hIdx=1;
+      const headers=raw[hIdx].map(h=>String(h||'').trim());
+      const rows=raw.slice(hIdx+1).filter(r=>r.some(c=>c!==null&&c!==''));
+      dados=rows.map(r=>{
+        const obj={};
+        headers.forEach((h,i)=>obj[h]=r[i]??'');
+        return {
+          id: String(obj['ID da Solicitação']||''),
+          assunto: String(obj['Assunto']||''),
+          empresa: String(obj['Empresa']||''),
+          status: String(obj['Status']||'Sem status'),
+          prioridade: String(obj['Prioridade']||''),
+          departamento: String(obj['Departamento']||'Sem departamento'),
+          responsavel: String(obj['Responsável Interno']||''),
+          abertura: String(obj['Abertura']||''),
+          dias: Number(obj['Dias Corridos'])||0,
+        };
+      }).filter(d=>d.id&&d.id!=='' && !d.id.toString().includes('listadas'));
+      dados.forEach(d=>{d.tipo=calcTipo(d); d.sem=calcSem(d.dias); d.isPrioAdmin=calcPrioAdmin(d);});
+      document.getElementById('nome-arquivo').textContent=file.name;
+      iniciarPainel();
+    } catch(err){
+      alert('Erro ao ler o arquivo. Certifique-se de exportar no formato correto do Acessorias.\n\n'+err.message);
+    }
+    document.getElementById('loading').style.display='none';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function calcTipo(d){
+  const a=d.assunto.toLowerCase(),dp=d.departamento.toLowerCase();
+  if(['fiscal','contábil','pessoal','imposto de renda','parcelamentos','legalização','paralegal'].some(s=>dp.includes(s))) return 'Cliente';
+  if(dp.includes('gestão')||dp.includes('thiago')){
+    if(['checkup','balanço','balancete','dre','offboarding','onboarding','declaração','irpf','imposto'].some(s=>a.includes(s))) return 'Cliente';
+    return 'Administrativo';
+  }
+  if(['administrativo','financeiro','atendimento'].some(s=>dp.includes(s))){
+    if(['irpf','imposto','declaração','nota fiscal','guia','parcelamento'].some(s=>a.includes(s))) return 'Cliente';
+    return 'Administrativo';
+  }
+  return 'Cliente';
+}
+function calcSem(dias){
+  if(dias<=1) return 'Verde';
+  if(dias<=3) return 'Amarelo';
+  return 'Vermelho';
+}
+function calcPrioAdmin(d){
+  const a=d.assunto.toLowerCase(),dp=d.departamento.toLowerCase();
+  return ['administrativo','financeiro'].some(s=>dp.includes(s)) &&
+    ['certificado','cadastro','procuração','procuracao','login','senha','acesso cd','cd do','cd vencido'].some(s=>a.includes(s));
+}
+
+function iniciarPainel(){
+  dptos=[...new Set(dados.map(d=>d.departamento))].sort();
+  resps=[...new Set(dados.flatMap(d=>d.responsavel.split(',').map(r=>r.trim()).filter(Boolean)))].sort();
+  ['f-dpto','f-setor-sel'].forEach(id=>{
+    const s=document.getElementById(id); s.innerHTML='<option value="">Todos</option>';
+    dptos.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;s.appendChild(o);});
+  });
+  ['f-resp','f-pessoa'].forEach(id=>{
+    const s=document.getElementById(id); s.innerHTML='<option value="">Todos</option>';
+    resps.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o);});
+  });
+  filtrados=[...dados]; sortData(); renderVisao(); filtrar(); renderEquipe(); renderSetor(); renderAdmin();
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('painel').style.display='block';
+}
+
+function voltarUpload(){
+  document.getElementById('painel').style.display='none';
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('file-input').value='';
+}
+
+function sw(n,el){
+  document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active'); el.classList.add('active');
+}
+
+// BADGES
+function sbadge(s){const d=`<span class="dot dot-${s.toLowerCase()}"></span>`;return `<span class="badge b-${s.toLowerCase()}">${d}${s}</span>`;}
+function tbadge(t){return t==='Cliente'?'<span class="badge b-cliente">Cliente</span>':'<span class="badge b-admin">Admin</span>';}
+function stbadge(s){
+  if(s==='Nova') return '<span class="badge b-nova">Nova</span>';
+  if(s==='Resolvendo') return '<span class="badge b-resolvendo">Resolvendo</span>';
+  if(s==='Cliente') return '<span class="badge b-aguardando">Ag. Cliente</span>';
+  return `<span class="badge b-admin">${s}</span>`;
+}
+function dcor(dias){return dias>30?'dias-crit':dias>7?'dias-warn':'dias-ok';}
+
+// VISÃO GERAL
+function renderVisao(){
+  const v=dados.filter(d=>d.sem==='Verde').length;
+  const a=dados.filter(d=>d.sem==='Amarelo').length;
+  const r=dados.filter(d=>d.sem==='Vermelho').length;
+  const tot=dados.length;
+  const pct=Math.round((v+a)/tot*100);
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi verde"><div class="kpi-label">No prazo (≤1 dia)</div><div class="kpi-val">${v}</div><div class="kpi-sub">verde</div></div>
+    <div class="kpi amarelo"><div class="kpi-label">Atenção (2–3 dias)</div><div class="kpi-val">${a}</div><div class="kpi-sub">amarelo</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Em atraso (4+ dias)</div><div class="kpi-val">${r}</div><div class="kpi-sub">vermelho</div></div>
+    <div class="kpi accent"><div class="kpi-label">Total abertas</div><div class="kpi-val">${tot}</div></div>
+    <div class="kpi"><div class="kpi-label">Dentro do prazo</div><div class="kpi-val" style="color:${pct>=80?'var(--verde)':pct>=50?'var(--amarelo)':'var(--vermelho)'}">${pct}%</div></div>`;
+  const crit=dados.filter(d=>d.sem==='Vermelho'&&d.tipo==='Cliente').length;
+  document.getElementById('alerta-visao').innerHTML=crit>50?
+    `<div class="alert">⚠ ${crit} solicitações de entrega ao cliente estão em atraso. Atenção imediata necessária.</div>`:'';
+  // Tipo
+  let ttbl='';
+  ['Cliente','Administrativo'].forEach(t=>{
+    const sub=dados.filter(d=>d.tipo===t);
+    const tv=sub.filter(d=>d.sem==='Verde').length;
+    const ta=sub.filter(d=>d.sem==='Amarelo').length;
+    const tr=sub.filter(d=>d.sem==='Vermelho').length;
+    ttbl+=`<tr><td>${tbadge(t)}</td><td style="color:var(--verde)">${tv}</td><td style="color:var(--amarelo)">${ta}</td><td style="color:var(--vermelho)">${tr}</td><td><b>${sub.length}</b></td></tr>`;
+  });
+  document.getElementById('tbl-tipo').innerHTML=ttbl;
+  // Status
+  let stbl='';
+  ['Nova','Resolvendo','Cliente'].forEach(s=>{
+    const sub=dados.filter(d=>d.status===s);
+    if(!sub.length) return;
+    const avg=Math.round(sub.reduce((x,d)=>x+d.dias,0)/sub.length);
+    const mx=Math.max(...sub.map(d=>d.dias));
+    stbl+=`<tr><td>${stbadge(s)}</td><td>${sub.length}</td><td style="text-align:right">${avg}</td><td style="text-align:right;color:var(--vermelho)">${mx}</td></tr>`;
+  });
+  document.getElementById('tbl-status').innerHTML=stbl;
+  // Setor
+  let setbl='';
+  dptos.forEach(dp=>{
+    const sub=dados.filter(d=>d.departamento===dp);
+    if(!sub.length) return;
+    const tv=sub.filter(d=>d.sem==='Verde').length;
+    const ta=sub.filter(d=>d.sem==='Amarelo').length;
+    const tr=sub.filter(d=>d.sem==='Vermelho').length;
+    const pct2=Math.round((tv+ta)/sub.length*100);
+    const c=pct2>=80?'var(--verde)':pct2>=50?'var(--amarelo)':'var(--vermelho)';
+    setbl+=`<tr><td>${dp}</td><td style="color:var(--verde)">${tv}</td><td style="color:var(--amarelo)">${ta}</td><td style="color:var(--vermelho)">${tr}</td><td>${sub.length}</td><td style="color:${c};font-weight:500">${pct2}%</td></tr>`;
+  });
+  document.getElementById('tbl-setor-v').innerHTML=setbl;
+}
+
+// LISTA
+function filtrar(){
+  const b=document.getElementById('f-busca').value.toLowerCase();
+  const sem=document.getElementById('f-sem').value;
+  const tp=document.getElementById('f-tipo').value;
+  const st=document.getElementById('f-status').value;
+  const dp=document.getElementById('f-dpto').value;
+  const rs=document.getElementById('f-resp').value;
+  filtrados=dados.filter(d=>{
+    if(b&&!d.assunto.toLowerCase().includes(b)&&!d.empresa.toLowerCase().includes(b)) return false;
+    if(sem&&d.sem!==sem) return false;
+    if(tp&&d.tipo!==tp) return false;
+    if(st&&d.status!==st) return false;
+    if(dp&&d.departamento!==dp) return false;
+    if(rs&&!d.responsavel.toLowerCase().includes(rs.toLowerCase())) return false;
+    return true;
+  });
+  sortData(); pag=1; renderLista();
+}
+function limpar(){
+  ['f-busca','f-sem','f-tipo','f-status','f-dpto','f-resp'].forEach(id=>{document.getElementById(id).value='';});
+  filtrar();
+}
+function sortBy(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true;}sortData();renderLista();}
+function sortData(){
+  const ord={Verde:0,Amarelo:1,Vermelho:2};
+  filtrados.sort((a,b)=>{
+    let va,vb;
+    if(sortCol==='sem'){va=ord[a.sem]||0;vb=ord[b.sem]||0;}
+    else if(sortCol==='dias'){va=Number(a.dias);vb=Number(b.dias);}
+    else{va=String(a[sortCol]||'').toLowerCase();vb=String(b[sortCol]||'').toLowerCase();}
+    return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
+  });
+}
+function renderLista(){
+  const tot=filtrados.length;
+  const fat=filtrados.slice((pag-1)*POR_PAG,pag*POR_PAG);
+  document.getElementById('lista-info').textContent=`${fat.length} de ${tot} solicitações`;
+  let h='';
+  fat.forEach(d=>{
+    const star=d.isPrioAdmin?'<span class="badge b-prio" style="font-size:10px;margin-right:4px">★</span>':'';
+    h+=`<tr>
+      <td>${sbadge(d.sem)}</td>
+      <td>${tbadge(d.tipo)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.75rem">${d.id}</td>
+      <td><span class="ellipsis" title="${d.assunto}">${star}${d.assunto}</span></td>
+      <td><span class="ellipsis" title="${d.empresa}">${d.empresa}</span></td>
+      <td>${stbadge(d.status)}</td>
+      <td style="white-space:nowrap;font-size:0.78rem">${d.departamento}</td>
+      <td><span class="ellipsis">${d.responsavel}</span></td>
+      <td style="text-align:right;font-family:'DM Mono',monospace" class="${dcor(d.dias)}">${d.dias}</td>
+      <td style="white-space:nowrap;font-size:0.78rem">${d.abertura}</td>
+    </tr>`;
+  });
+  document.getElementById('lista-body').innerHTML=h||'<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum resultado</td></tr>';
+  const totPag=Math.max(1,Math.ceil(tot/POR_PAG));
+  document.getElementById('pag-info').textContent=`Pág ${pag}/${totPag}`;
+}
+function prevP(){if(pag>1){pag--;renderLista();}}
+function nextP(){const t=Math.ceil(filtrados.length/POR_PAG);if(pag<t){pag++;renderLista();}}
+
+// EQUIPE
+function renderEquipe(){
+  const pessoa=document.getElementById('f-pessoa').value;
+  const tp=document.getElementById('f-tipo-eq').value;
+  const lista=pessoa?[pessoa]:resps;
+  let html='';
+  lista.forEach(p=>{
+    const sub=dados.filter(d=>d.responsavel.split(',').map(r=>r.trim()).includes(p)&&(!tp||d.tipo===tp));
+    if(!sub.length) return;
+    const v=sub.filter(d=>d.sem==='Verde').length;
+    const a=sub.filter(d=>d.sem==='Amarelo').length;
+    const r=sub.filter(d=>d.sem==='Vermelho').length;
+    const crit=sub.filter(d=>d.sem==='Vermelho'&&d.tipo==='Cliente').length;
+    const pct=Math.round((v+a)/sub.length*100);
+    html+=`<div class="card">
+      <div class="card-header">
+        <span class="card-nome">${p}</span>
+        <div class="card-badges">
+          <span class="badge b-verde">${v} verde</span>
+          <span class="badge b-amarelo">${a} amarelo</span>
+          <span class="badge b-vermelho">${r} vermelho</span>
+          <span class="badge b-admin">${sub.length} total</span>
+        </div>
+      </div>
+      <div class="pbar-wrap">
+        <div class="pbar-top"><span style="font-size:0.72rem;color:var(--text3)">% dentro do prazo</span><span style="font-size:0.72rem;color:${pct>=80?'var(--verde)':pct>=50?'var(--amarelo)':'var(--vermelho)'}">${pct}%</span></div>
+        <div class="pbar-track"><div class="pbar-fill ${pct>=80?'verde':pct>=50?'amarelo':'vermelho'}" style="width:${pct}%"></div></div>
+      </div>
+      ${crit?`<div style="font-size:0.75rem;color:var(--vermelho);margin-bottom:10px">⚠ ${crit} demanda(s) de cliente em atraso</div>`:''}
+      <table style="width:100%"><thead><tr>
+        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Setor</th><th>Dias</th><th>Status</th>
+      </tr></thead><tbody>`;
+    sub.sort((a,b)=>b.dias-a.dias).slice(0,8).forEach(d=>{
+      html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
+        <td><span class="ellipsis" style="max-width:150px" title="${d.assunto}">${d.assunto}</span></td>
+        <td style="white-space:nowrap;font-size:0.75rem">${d.departamento}</td>
+        <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
+        <td>${stbadge(d.status)}</td></tr>`;
+    });
+    if(sub.length>8) html+=`<tr><td colspan="7" style="text-align:center;font-size:0.72rem;color:var(--text3);padding:8px">+ ${sub.length-8} mais — filtre na Lista Completa</td></tr>`;
+    html+=`</tbody></table></div>`;
+  });
+  document.getElementById('equipe-cards').innerHTML=html||'<div style="padding:2rem;text-align:center;color:var(--text3)">Selecione uma pessoa</div>';
+}
+
+// SETOR
+function renderSetor(){
+  const sel=document.getElementById('f-setor-sel').value;
+  const lista=sel?[sel]:dptos;
+  let html='';
+  lista.forEach(dp=>{
+    const sub=dados.filter(d=>d.departamento===dp);
+    if(!sub.length) return;
+    const v=sub.filter(d=>d.sem==='Verde').length;
+    const a=sub.filter(d=>d.sem==='Amarelo').length;
+    const r=sub.filter(d=>d.sem==='Vermelho').length;
+    html+=`<div class="card">
+      <div class="card-header">
+        <span class="card-nome">${dp}</span>
+        <div class="card-badges">
+          <span class="badge b-verde">${v}</span>
+          <span class="badge b-amarelo">${a}</span>
+          <span class="badge b-vermelho">${r}</span>
+          <span class="badge b-admin">${sub.length} total</span>
+        </div>
+      </div>
+      <table style="width:100%"><thead><tr>
+        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Responsável</th><th>Dias</th><th>Status</th>
+      </tr></thead><tbody>`;
+    sub.sort((a,b)=>b.dias-a.dias).slice(0,6).forEach(d=>{
+      html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
+        <td><span class="ellipsis" style="max-width:150px">${d.assunto}</span></td>
+        <td><span class="ellipsis" style="max-width:100px">${d.responsavel}</span></td>
+        <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
+        <td>${stbadge(d.status)}</td></tr>`;
+    });
+    if(sub.length>6) html+=`<tr><td colspan="7" style="text-align:center;font-size:0.72rem;color:var(--text3);padding:8px">+ ${sub.length-6} mais</td></tr>`;
+    html+=`</tbody></table></div>`;
+  });
+  document.getElementById('setor-cards').innerHTML=html;
+}
+
+// ADMIN
+function renderAdmin(){
+  const priors=dados.filter(d=>d.isPrioAdmin).sort((a,b)=>b.dias-a.dias);
+  document.getElementById('admin-body').innerHTML=priors.map(d=>`<tr>
+    <td>${sbadge(d.sem)}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
+    <td><span class="ellipsis">${d.assunto}</span></td>
+    <td><span class="ellipsis">${d.empresa}</span></td>
+    <td style="white-space:nowrap;font-size:0.75rem">${d.departamento}</td>
+    <td><span class="ellipsis">${d.responsavel}</span></td>
+    <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
+    <td>${stbadge(d.status)}</td>
+  </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3)">Nenhuma prioridade identificada</td></tr>';
+}
+</script>
+</body>
+</html>
