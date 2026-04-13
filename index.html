@@ -574,7 +574,7 @@ function renderEquipe(){
       <table style="width:100%"><thead><tr>
         <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Setor</th><th>Dias</th><th>Status</th>
       </tr></thead><tbody>`;
-    sub.sort((a,b)=>b.dias-a.dias).slice(0,8).forEach(d=>{
+    sub.sort((a,b)=>b.dias-a.dias).forEach(d=>{
       html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
         <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
         <td><span class="ellipsis" style="max-width:150px" title="${d.assunto}">${d.assunto}</span></td>
@@ -582,7 +582,6 @@ function renderEquipe(){
         <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
         <td>${stbadge(d.status)}</td></tr>`;
     });
-    if(sub.length>8) html+=`<tr><td colspan="7" style="text-align:center;font-size:0.72rem;color:var(--text3);padding:8px">+ ${sub.length-8} mais — filtre na Lista Completa</td></tr>`;
     html+=`</tbody></table></div>`;
   });
   document.getElementById('equipe-cards').innerHTML=html||'<div style="padding:2rem;text-align:center;color:var(--text3)">Selecione uma pessoa</div>';
@@ -612,7 +611,7 @@ function renderSetor(){
       <table style="width:100%"><thead><tr>
         <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Responsável</th><th>Dias</th><th>Status</th>
       </tr></thead><tbody>`;
-    sub.sort((a,b)=>b.dias-a.dias).slice(0,6).forEach(d=>{
+    sub.sort((a,b)=>b.dias-a.dias).forEach(d=>{
       html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
         <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
         <td><span class="ellipsis" style="max-width:150px">${d.assunto}</span></td>
@@ -620,7 +619,6 @@ function renderSetor(){
         <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
         <td>${stbadge(d.status)}</td></tr>`;
     });
-    if(sub.length>6) html+=`<tr><td colspan="7" style="text-align:center;font-size:0.72rem;color:var(--text3);padding:8px">+ ${sub.length-6} mais</td></tr>`;
     html+=`</tbody></table></div>`;
   });
   document.getElementById('setor-cards').innerHTML=html;
