@@ -393,7 +393,7 @@ function calcTipo(d){
 }
 function calcSem(dias){
   if(dias<=1) return 'Verde';
-  if(dias<=3) return 'Amarelo';
+  if(dias<=2) return 'Amarelo';
   return 'Vermelho';
 }
 function calcPrioAdmin(d){
@@ -450,8 +450,8 @@ function renderVisao(){
   const pct=Math.round((v+a)/tot*100);
   document.getElementById('kpis').innerHTML=`
     <div class="kpi verde"><div class="kpi-label">No prazo (≤1 dia)</div><div class="kpi-val">${v}</div><div class="kpi-sub">verde</div></div>
-    <div class="kpi amarelo"><div class="kpi-label">Atenção (2–3 dias)</div><div class="kpi-val">${a}</div><div class="kpi-sub">amarelo</div></div>
-    <div class="kpi vermelho"><div class="kpi-label">Em atraso (4+ dias)</div><div class="kpi-val">${r}</div><div class="kpi-sub">vermelho</div></div>
+    <div class="kpi amarelo"><div class="kpi-label">Atenção (2 dias)</div><div class="kpi-val">${a}</div><div class="kpi-sub">amarelo</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Em atraso (3+ dias)</div><div class="kpi-val">${r}</div><div class="kpi-sub">vermelho</div></div>
     <div class="kpi accent"><div class="kpi-label">Total abertas</div><div class="kpi-val">${tot}</div></div>
     <div class="kpi"><div class="kpi-label">Dentro do prazo</div><div class="kpi-val" style="color:${pct>=80?'var(--verde)':pct>=50?'var(--amarelo)':'var(--vermelho)'}">${pct}%</div></div>`;
   const crit=dados.filter(d=>d.sem==='Vermelho'&&d.tipo==='Cliente').length;
