@@ -293,7 +293,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="filters">
         <div class="fg"><label>Pessoa</label><select id="f-pessoa" onchange="renderEquipe()"><option value="">Todas</option></select></div>
         <div class="fg"><label>Tipo</label><select id="f-tipo-eq" onchange="renderEquipe()"><option value="">Todos</option><option>Cliente</option><option>Administrativo</option></select></div>
+        <div class="fg"><label>Semáforo</label><select id="f-sem-eq" onchange="renderEquipe()"><option value="">Todos</option><option>Verde</option><option>Amarelo</option><option>Vermelho</option></select></div>
+        <div class="fg"><label>Status</label><select id="f-status-eq" onchange="renderEquipe()"><option value="">Todos</option><option>Nova</option><option>Resolvendo</option><option>Cliente</option></select></div>
+        <div class="fg"><label>Buscar</label><input id="f-busca-eq" placeholder="Assunto ou empresa..." oninput="renderEquipe()"></div>
+        <div class="fg"><label>&nbsp;</label><button class="btn-clear" onclick="limparEquipe()">Limpar</button></div>
       </div>
+      <div id="equipe-info" style="font-size:0.75rem;color:var(--text3);margin-bottom:8px"></div>
       <div id="equipe-cards"></div>
     </div>
 
@@ -301,7 +306,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div id="tab-setor" class="tab-sec">
       <div class="filters">
         <div class="fg"><label>Setor</label><select id="f-setor-sel" onchange="renderSetor()"><option value="">Todos</option></select></div>
+        <div class="fg"><label>Tipo</label><select id="f-tipo-set" onchange="renderSetor()"><option value="">Todos</option><option>Cliente</option><option>Administrativo</option></select></div>
+        <div class="fg"><label>Semáforo</label><select id="f-sem-set" onchange="renderSetor()"><option value="">Todos</option><option>Verde</option><option>Amarelo</option><option>Vermelho</option></select></div>
+        <div class="fg"><label>Status</label><select id="f-status-set" onchange="renderSetor()"><option value="">Todos</option><option>Nova</option><option>Resolvendo</option><option>Cliente</option></select></div>
+        <div class="fg"><label>Buscar</label><input id="f-busca-set" placeholder="Assunto ou empresa..." oninput="renderSetor()"></div>
+        <div class="fg"><label>&nbsp;</label><button class="btn-clear" onclick="limparSetor()">Limpar</button></div>
       </div>
+      <div id="setor-info" style="font-size:0.75rem;color:var(--text3);margin-bottom:8px"></div>
       <div id="setor-cards"></div>
     </div>
 
@@ -543,19 +554,33 @@ function prevP(){if(pag>1){pag--;renderLista();}}
 function nextP(){const t=Math.ceil(filtrados.length/POR_PAG);if(pag<t){pag++;renderLista();}}
 
 // EQUIPE
+function limparEquipe(){
+  ['f-tipo-eq','f-sem-eq','f-status-eq'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-busca-eq').value='';
+  renderEquipe();
+}
 function renderEquipe(){
   const pessoa=document.getElementById('f-pessoa').value;
   const tp=document.getElementById('f-tipo-eq').value;
+  const sem=document.getElementById('f-sem-eq').value;
+  const st=document.getElementById('f-status-eq').value;
+  const busca=document.getElementById('f-busca-eq').value.toLowerCase();
   const lista=pessoa?[pessoa]:resps;
-  let html='';
+  let html=''; let totalMostrado=0;
   lista.forEach(p=>{
-    const sub=dados.filter(d=>d.responsavel.split(',').map(r=>r.trim()).includes(p)&&(!tp||d.tipo===tp));
+    let sub=dados.filter(d=>d.responsavel.split(',').map(r=>r.trim()).includes(p));
+    if(tp) sub=sub.filter(d=>d.tipo===tp);
+    if(sem) sub=sub.filter(d=>d.sem===sem);
+    if(st) sub=sub.filter(d=>d.status===st);
+    if(busca) sub=sub.filter(d=>d.assunto.toLowerCase().includes(busca)||d.empresa.toLowerCase().includes(busca));
     if(!sub.length) return;
-    const v=sub.filter(d=>d.sem==='Verde').length;
-    const a=sub.filter(d=>d.sem==='Amarelo').length;
-    const r=sub.filter(d=>d.sem==='Vermelho').length;
+    totalMostrado+=sub.length;
+    const todosV=dados.filter(d=>d.responsavel.split(',').map(r=>r.trim()).includes(p));
+    const v=todosV.filter(d=>d.sem==='Verde').length;
+    const a=todosV.filter(d=>d.sem==='Amarelo').length;
+    const r=todosV.filter(d=>d.sem==='Vermelho').length;
     const crit=sub.filter(d=>d.sem==='Vermelho'&&d.tipo==='Cliente').length;
-    const pct=Math.round((v+a)/sub.length*100);
+    const pct=Math.round((v+a)/todosV.length*100);
     html+=`<div class="card">
       <div class="card-header">
         <span class="card-nome">${p}</span>
@@ -563,7 +588,7 @@ function renderEquipe(){
           <span class="badge b-verde">${v} verde</span>
           <span class="badge b-amarelo">${a} amarelo</span>
           <span class="badge b-vermelho">${r} vermelho</span>
-          <span class="badge b-admin">${sub.length} total</span>
+          <span class="badge b-admin">${sub.length}${sub.length!==todosV.length?' de '+todosV.length:''} total</span>
         </div>
       </div>
       <div class="pbar-wrap">
@@ -572,32 +597,49 @@ function renderEquipe(){
       </div>
       ${crit?`<div style="font-size:0.75rem;color:var(--vermelho);margin-bottom:10px">⚠ ${crit} demanda(s) de cliente em atraso</div>`:''}
       <table style="width:100%"><thead><tr>
-        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Setor</th><th>Dias</th><th>Status</th>
+        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Empresa</th><th>Setor</th><th>Dias</th><th>Status</th>
       </tr></thead><tbody>`;
     sub.sort((a,b)=>b.dias-a.dias).forEach(d=>{
       html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
         <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
-        <td><span class="ellipsis" style="max-width:150px" title="${d.assunto}">${d.assunto}</span></td>
+        <td><span class="ellipsis" style="max-width:160px" title="${d.assunto}">${d.assunto}</span></td>
+        <td><span class="ellipsis" style="max-width:120px" title="${d.empresa}">${d.empresa}</span></td>
         <td style="white-space:nowrap;font-size:0.75rem">${d.departamento}</td>
         <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
         <td>${stbadge(d.status)}</td></tr>`;
     });
     html+=`</tbody></table></div>`;
   });
-  document.getElementById('equipe-cards').innerHTML=html||'<div style="padding:2rem;text-align:center;color:var(--text3)">Selecione uma pessoa</div>';
+  document.getElementById('equipe-info').textContent=totalMostrado?`${totalMostrado} solicitação(ões) encontrada(s)`:'';
+  document.getElementById('equipe-cards').innerHTML=html||'<div style="padding:2rem;text-align:center;color:var(--text3)">Nenhuma solicitação encontrada para os filtros selecionados</div>';
 }
 
 // SETOR
+function limparSetor(){
+  ['f-tipo-set','f-sem-set','f-status-set'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-busca-set').value='';
+  renderSetor();
+}
 function renderSetor(){
   const sel=document.getElementById('f-setor-sel').value;
+  const tp=document.getElementById('f-tipo-set').value;
+  const sem=document.getElementById('f-sem-set').value;
+  const st=document.getElementById('f-status-set').value;
+  const busca=document.getElementById('f-busca-set').value.toLowerCase();
   const lista=sel?[sel]:dptos;
-  let html='';
+  let html=''; let totalMostrado=0;
   lista.forEach(dp=>{
-    const sub=dados.filter(d=>d.departamento===dp);
+    let sub=dados.filter(d=>d.departamento===dp);
+    if(tp) sub=sub.filter(d=>d.tipo===tp);
+    if(sem) sub=sub.filter(d=>d.sem===sem);
+    if(st) sub=sub.filter(d=>d.status===st);
+    if(busca) sub=sub.filter(d=>d.assunto.toLowerCase().includes(busca)||d.empresa.toLowerCase().includes(busca));
     if(!sub.length) return;
-    const v=sub.filter(d=>d.sem==='Verde').length;
-    const a=sub.filter(d=>d.sem==='Amarelo').length;
-    const r=sub.filter(d=>d.sem==='Vermelho').length;
+    totalMostrado+=sub.length;
+    const todosS=dados.filter(d=>d.departamento===dp);
+    const v=todosS.filter(d=>d.sem==='Verde').length;
+    const a=todosS.filter(d=>d.sem==='Amarelo').length;
+    const r=todosS.filter(d=>d.sem==='Vermelho').length;
     html+=`<div class="card">
       <div class="card-header">
         <span class="card-nome">${dp}</span>
@@ -605,23 +647,25 @@ function renderSetor(){
           <span class="badge b-verde">${v}</span>
           <span class="badge b-amarelo">${a}</span>
           <span class="badge b-vermelho">${r}</span>
-          <span class="badge b-admin">${sub.length} total</span>
+          <span class="badge b-admin">${sub.length}${sub.length!==todosS.length?' de '+todosS.length:''} total</span>
         </div>
       </div>
       <table style="width:100%"><thead><tr>
-        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Responsável</th><th>Dias</th><th>Status</th>
+        <th>Prazo</th><th>Tipo</th><th>ID</th><th>Assunto</th><th>Empresa</th><th>Responsável</th><th>Dias</th><th>Status</th>
       </tr></thead><tbody>`;
     sub.sort((a,b)=>b.dias-a.dias).forEach(d=>{
       html+=`<tr><td>${sbadge(d.sem)}</td><td>${tbadge(d.tipo)}</td>
         <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${d.id}</td>
-        <td><span class="ellipsis" style="max-width:150px">${d.assunto}</span></td>
-        <td><span class="ellipsis" style="max-width:100px">${d.responsavel}</span></td>
+        <td><span class="ellipsis" style="max-width:150px" title="${d.assunto}">${d.assunto}</span></td>
+        <td><span class="ellipsis" style="max-width:110px" title="${d.empresa}">${d.empresa}</span></td>
+        <td><span class="ellipsis" style="max-width:90px">${d.responsavel}</span></td>
         <td style="text-align:right" class="${dcor(d.dias)}">${d.dias}</td>
         <td>${stbadge(d.status)}</td></tr>`;
     });
     html+=`</tbody></table></div>`;
   });
-  document.getElementById('setor-cards').innerHTML=html;
+  document.getElementById('setor-info').textContent=totalMostrado?`${totalMostrado} solicitação(ões) encontrada(s)`:'';
+  document.getElementById('setor-cards').innerHTML=html||'<div style="padding:2rem;text-align:center;color:var(--text3)">Nenhuma solicitação encontrada para os filtros selecionados</div>';
 }
 
 // ADMIN
